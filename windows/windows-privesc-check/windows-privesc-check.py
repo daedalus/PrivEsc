@@ -243,9 +243,8 @@ local_ips = socket.gethostbyname_ex(socket.gethostname())[2] # have to do this b
 
 version = "1.0"
 svnversion="$Revision: 24 $" # Don't change this line.  Auto-updated.
-svnnum=re.sub('[^0-9]', '', svnversion)
-if svnnum:
-	version = version + "svn" + svnnum
+if svnnum := re.sub('[^0-9]', '', svnversion):
+	version = f"{version}svn{svnnum}"
 
 all_checks       = 0
 registry_checks  = 0
@@ -387,7 +386,7 @@ share_types = (
 	"STYPE_PRINTQ",
 	"STYPE_DEVICE",
 )
-	
+
 sv_types = (
         "SV_TYPE_WORKSTATION",
         "SV_TYPE_SERVER",
@@ -760,7 +759,7 @@ This could allow certain users on the system to place malicious code into certai
           },
        }
     },
-	
+
     'WPC002': {
        'title': "Insecure Permissions on Files and Directories in Path (OBSELETE ISSUE)",
        'description': '''Some of the programs and directories in the %PATH% variable could be changed by non-administrative users.
@@ -779,7 +778,7 @@ This could allow certain users on the system to place malicious code into certai
           }
        }
     },
-	
+
     'WPC003': {
        'title': "Insecure Permissions In Windows Registry",
        'description': '''Some registry keys that hold the names of programs run by other users were checked and found to have insecure permissions.  It would be possible for non-administrative users to modify the registry to cause a different programs to be run.  This weakness could be abused by low-privileged users to run commands of their choosing with higher privileges.''',
@@ -791,7 +790,7 @@ This could allow certain users on the system to place malicious code into certai
           },
        }
     },
-	
+
     'WPC004': {
        'title': "Insecure Permissions On Windows Service Executables",
        'description': '''Some of the programs that are run when Windows Services start were found to have weak file permissions.  It is possible for non-administrative local users to replace some of the Windows Service executables with malicious programs.''',
@@ -803,7 +802,7 @@ This could allow certain users on the system to place malicious code into certai
           },
        }
     },
-	
+
     'WPC005': {
        'title': "Insecure Permissions On Windows Service Registry Keys (NOT IMPLEMENTED YET)",
        'description': '''Some registry keys that hold the names of programs that are run when Windows Services start were found to have weak file permissions.  They could be changed by non-administrative users to cause malicious programs to be run instead of the intended Windows Service Executable.''',
@@ -917,7 +916,7 @@ This could allow certain users on the system to place malicious code into certai
           },
        }
     },
-	
+
     'WPC015': {
        'title': "Insecure Permissions On Files / Directories In Users' PATHs (NEED TO CHECK THIS WORKS)",
        'description': '''Some programs/directories in the paths of users on this system have weak permissions.''',
@@ -1146,30 +1145,30 @@ def format_issues(format, issue_template, issue_data):
 	for item in audit_data['ips']:
 		overview = overview.replace('REPLACE_IPS', list_item("REPLACE_IPS", item))
 	overview = overview.replace('REPLACE_IPS', '')
-	
+
 	overview = overview.replace('REPLACE_OS', audit_data['os_name'] + " (" + audit_data['os_version'] + ")")
-	
+
 	overview = overview.replace('REPLACE_VERSION', audit_data['version'])
 	overview = overview.replace('REPLACE_DATETIME', audit_data['datetime'])
 	overview = overview.replace('REPLACE_AUDIT_USER', audit_data['audit_user'])
-	
+
 	for item in audit_data['trusted_users']:
 		overview = overview.replace('REPLACE_TRUSTED_USERS', list_item("REPLACE_TRUSTED_USERS", item))
 	overview = overview.replace('REPLACE_TRUSTED_USERS', '')
-				
+
 	for item in audit_data['trusted_groups']:
 		overview = overview.replace('REPLACE_TRUSTED_GROUPS', list_item("REPLACE_TRUSTED_GROUPS", item))
 	overview = overview.replace('REPLACE_TRUSTED_GROUPS', '')
 
 	permlist = ''
 	for permtype in dangerous_perms_write.keys():
-		permlist += "Permission type '" + permtype + "'<p>"
+		permlist += f"Permission type '{permtype}'<p>"
 		permlist += "<ul>"
 		for location in dangerous_perms_write[permtype].keys():
 			for item in dangerous_perms_write[permtype][location]:
 				permlist += "\t<li>" + item + "</li>"
 		permlist += "</ul>"
-				
+
 	#for item in audit_data['dangerous_privs']:
 	#	overview = overview.replace('REPLACE_DANGEROUS_PERM', list_item("REPLACE_DANGEROUS_PERM", item))
 	#overview = overview.replace('REPLACE_DANGEROUS_PERM', '')
@@ -1182,7 +1181,13 @@ def format_issues(format, issue_template, issue_data):
 	for issue_no in issue_data:
 		# print "[V] Processing issue issue_no\n"
 		report = report + format_issue(format, issue_no, issue_data, issue_template)
-		toc = toc + '<a href="#' + issue_template[issue_no]['title'] + '">' + issue_template[issue_no]['title'] + "</a><p>"
+		toc = (
+			f'{toc}<a href="#'
+			+ issue_template[issue_no]['title']
+			+ '">'
+			+ issue_template[issue_no]['title']
+			+ "</a><p>"
+		)
 
 	if report:
 		overview = overview.replace('REPLACE_ISSUES', report)
@@ -1194,7 +1199,7 @@ def format_issues(format, issue_template, issue_data):
 	return overview
 
 def list_item(tag, item):
-	return "<li>" + item + "</li>\n" + tag
+	return f"<li>{item}" + "</li>\n" + tag
 
 def format_issue(format, issue_no, issue_data, issue_template): # $format is xml, html, or text
 	if not issue_no in issue_template:
@@ -1246,7 +1251,7 @@ def format_audit_data(format, audit_data): # $format is xml, html, or text
 def save_issue(issue_name, data_type, weak_perms):
 	#print weak_perms
 	global issues
-	if not issue_name in issues:
+	if issue_name not in issues:
 		issues[issue_name] = {}
 	#if not 'supporting_data' in issues[issue_name]:
 	#	issues[issue_name]['supporting_data'] = {}
@@ -1255,10 +1260,14 @@ def save_issue(issue_name, data_type, weak_perms):
 		domain = weak_perm[1]
 		name = weak_perm[2]
 		permission = weak_perm[3]
-		key = object + " has the following permissions granted for " + domain + "\\" + name
-		if not data_type in issues[issue_name]:
+		key = (
+			f"{object} has the following permissions granted for {domain}"
+			+ "\\"
+			+ name
+		)
+		if data_type not in issues[issue_name]:
 			issues[issue_name][data_type]= {}
-		if not key in issues[issue_name][data_type]:
+		if key not in issues[issue_name][data_type]:
 			issues[issue_name][data_type][key] = []
 		issues[issue_name][data_type][key].append(permission)
 		issues[issue_name][data_type][key] = list(set(issues[issue_name][data_type][key])) # dedup
@@ -1266,11 +1275,11 @@ def save_issue(issue_name, data_type, weak_perms):
 def save_issue_string(issue_name, data_type, issue_string):
 	#print weak_perms
 	global issues
-	if not issue_name in issues:
+	if issue_name not in issues:
 		issues[issue_name] = {}
-	if not data_type in issues[issue_name]:
+	if data_type not in issues[issue_name]:
 		issues[issue_name][data_type]= {}
-	if not issue_string in issues[issue_name][data_type]:
+	if issue_string not in issues[issue_name][data_type]:
 		issues[issue_name][data_type][issue_string] = []
 
 # args: string, string
@@ -1567,16 +1576,16 @@ def check_registry():
 		except:
 			#print "Can't open: " + hive + "\\" + key_string
 			continue
-		
+
 		sd = win32api.RegGetKeySecurity(keyh, win32security.DACL_SECURITY_INFORMATION | win32security.OWNER_SECURITY_INFORMATION)
-		weak_perms = check_weak_write_perms_by_sd(hive + "\\" + key_string, 'reg', sd)
-		if weak_perms:
+		if weak_perms := check_weak_write_perms_by_sd(
+			hive + "\\" + key_string, 'reg', sd
+		):
 			vprint(hive + "\\" + key_string)
 			#print weak_perms
 			if verbose == 0:
 				sys.stdout.write(".")
 			save_issue("WPC003", "writable_reg_paths", weak_perms)
-			# print_weak_perms("x", weak_perms)
 	print
 
 # TODO save_issue("WPC009", "writable_eventlog_key", weak_perms)  # weak perms on event log reg key
@@ -1980,21 +1989,17 @@ def check_processes():
 				# print mhs
 			except:
 				continue
-			
+
 			mhs = list(mhs)
 			exe = win32process.GetModuleFileNameEx(ph, mhs.pop(0))
-			weak_perms = check_weak_write_perms(exe, 'file')
-			# print_weak_perms("PID " + str(pid) + " running as " + user + ":", weak_perms)
-			if weak_perms:
+			if weak_perms := check_weak_write_perms(exe, 'file'):
 				save_issue("WPC016", "weak_perms_exes", weak_perms)
 				sys.stdout.write("!")
-				
+
 			for mh in mhs:
 				# print "PID %d (%s) has loaded module: %s" % (pid, exe, win32process.GetModuleFileNameEx(ph, mh))
 				dll = win32process.GetModuleFileNameEx(ph, mh)
-				weak_perms = check_weak_write_perms(dll, 'file')
-				# print_weak_perms("DLL used by PID " + str(pid) + " running as " + user + " (" + exe + "):", weak_perms)
-				if weak_perms:
+				if weak_perms := check_weak_write_perms(dll, 'file'):
 					save_issue("WPC016", "weak_perms_dlls", weak_perms)
 					sys.stdout.write("!")
 	print
@@ -2155,32 +2160,33 @@ def vprint(string):
 		
 def get_binary(binary_dirty):
 	m = re.search('^[\s]*?"([^"]+)"', binary_dirty)
-	
+
 	if m and os.path.exists(m.group(1)):
 		return m.group(1)
-	else:
-		if m:
-			binary_dirty = m.group(1)
-	
+	if m:
+		binary_dirty = m.group(1)
+
 	chunks = binary_dirty.split(" ")
 	candidate = ""
 	for chunk in chunks:
 		if candidate:
-			candidate = candidate + " "
+			candidate = f"{candidate} "
 		candidate = candidate + chunk
-		
+
 		if os.path.exists(candidate) and os.path.isfile(candidate):
 			return candidate
-		if os.path.exists(candidate + ".exe") and os.path.isfile(candidate + ".exe"):
-			return candidate + ".exe"
+		if os.path.exists(f"{candidate}.exe") and os.path.isfile(f"{candidate}.exe"):
+			return f"{candidate}.exe"
 		global on64bitwindows
 		if on64bitwindows:
 			candidate2 = candidate.replace("system32", "syswow64")
 			if os.path.exists(candidate2) and os.path.isfile(candidate2):
 				return candidate2
-			if os.path.exists(candidate2 + ".exe") and os.path.isfile(candidate2 + ".exe"):
-				return candidate2 + ".exe"
-		
+			if os.path.exists(f"{candidate2}.exe") and os.path.isfile(
+				f"{candidate2}.exe"
+			):
+				return f"{candidate2}.exe"
+
 	return None
 
 def print_weak_perms(type, weak_perms, options={}):
@@ -2215,16 +2221,13 @@ def check_path(path, issue_no):
 	exts = ('exe', 'com', 'bat', 'dll') # TODO pl, rb, py, php, inc, asp, aspx, ocx, vbs, more?
 	for dir in dirs:
 		weak_flag = 0
-		weak_perms = check_weak_write_perms(dir, 'directory')
-		if weak_perms:
+		if weak_perms := check_weak_write_perms(dir, 'directory'):
 			save_issue(issue_no, "weak_perms_dir", weak_perms)
 			print_weak_perms("Directory", weak_perms)
 			weak_flag = 1
 		for ext in exts:
 			for file in glob.glob(dir + '\*.' + ext):
-				#print "Processing " + file
-				weak_perms = check_weak_write_perms(file, 'file')
-				if weak_perms:
+				if weak_perms := check_weak_write_perms(file, 'file'):
 					save_issue(issue_no, "weak_perms_exe", weak_perms)
 					print_weak_perms("File", weak_perms)
 					weak_flag = 1
@@ -2318,26 +2321,37 @@ def check_drives():
 			fs = win32api.GetVolumeInformation(drive)[4]
 			if fs == 'NTFS':
 				warning = ""
-				weak_perms = check_weak_write_perms(drive, 'directory')
-				if weak_perms:
+				if weak_perms := check_weak_write_perms(drive, 'directory'):
 					# print "Weak permissions on drive root %s:" % drive
 					# print_weak_perms('directory', weak_perms)
 					sys.stdout.write(".")
-					save_issue("WPC010", "writable_drive_root", weak_perms) 
+					save_issue("WPC010", "writable_drive_root", weak_perms)
 			elif fs == 'FAT':
-				save_issue_string("WPC011", "fat_fs_drives", "Fixed drive " + drive + ": has " + fs + " filesystem (FAT does not support file permissions)" )
+				save_issue_string(
+					"WPC011",
+					"fat_fs_drives",
+					f"Fixed drive {drive}: has {fs} filesystem (FAT does not support file permissions)",
+				)
 				sys.stdout.write("!")
 			elif fs == 'FAT32':
-				save_issue_string("WPC011", "fat_fs_drives", "Fixed drive " + drive + ": has " + fs + " filesystem  (FAT32 does not support file permissions)" )
+				save_issue_string(
+					"WPC011",
+					"fat_fs_drives",
+					f"Fixed drive {drive}: has {fs} filesystem  (FAT32 does not support file permissions)",
+				)
 				sys.stdout.write("!")
 			else:
 				warning = " (not NTFS - might be insecure)"
-				save_issue_string("WPC011", "fat_fs_drives", "Fixed drive " + drive + ": has " + fs + " filesystem (Not NTFS - might not be secure)" )
+				save_issue_string(
+					"WPC011",
+					"fat_fs_drives",
+					f"Fixed drive {drive}: has {fs} filesystem (Not NTFS - might not be secure)",
+				)
 				sys.stdout.write("!")
 
-				 
-			# print "Fixed drive %s has %s filesystem%s" % (drive, fs, warning)
-			
+						 
+					# print "Fixed drive %s has %s filesystem%s" % (drive, fs, warning)
+
 	print
 	
 def check_shares():
@@ -2411,7 +2425,7 @@ def check_progfiles():
 
 	if os.getenv('ProgramFiles(x86)'):
 		prog_dirs.append(os.environ['ProgramFiles(x86)'])
-	
+
 	dot_count = 0
 	weak_flag = 0
 	for prog_dir in prog_dirs:
@@ -2427,18 +2441,14 @@ def check_progfiles():
 #				if weak_perms:
 #					print_weak_perms("File", weak_perms)
 			for file in dirs:
-				#print "Checking dir %s" % os.path.join(root, file)
-				weak_perms = check_weak_write_perms(os.path.join(root, file), 'file')
-				if weak_perms:
+				if weak_perms := check_weak_write_perms(os.path.join(root, file), 'file'):
 					#print_weak_perms("Directory", weak_perms)
 					save_issue("WPC001", "writable_dirs", weak_perms)
 					weak_flag = 1
 				dir = file
 				for ext in exts:
 					for f in glob.glob(root + "\\" + dir + '\*.' + ext):
-						#print "Processing " + f
-						weak_perms = check_weak_write_perms(f, 'file')
-						if weak_perms:
+						if weak_perms := check_weak_write_perms(f, 'file'):
 							print_weak_perms("File", weak_perms)
 							save_issue("WPC001", "writable_progs", weak_perms)
 							weak_flag = 1
